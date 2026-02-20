@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import NeonBackground from "../components/NeonBackground";
 import { formatWeekSlot, getWeekStartDateFromWeek } from "../utils/schedule";
@@ -353,7 +353,7 @@ function TestPage() {
           <div className="rounded-2xl bg-white p-6 shadow-lg">
             <div className="mb-6 flex items-center gap-3 rounded-xl bg-black px-4 py-3 text-white">
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-9 w-9 rounded-full border border-yellow-400/40 bg-black object-cover"
               />
@@ -372,7 +372,7 @@ function TestPage() {
                   Focus Mode
                 </p>
                 <h2 className="text-2xl font-semibold">
-                  Week {week} · Question {current + 1} / {questions.length}
+                  Week {week} � Question {current + 1} / {questions.length}
                 </h2>
                 <p className="text-xs text-white/70">{weekDateLabel}</p>
               </div>
@@ -441,3 +441,4 @@ function TestPage() {
 }
 
 export default TestPage;
+

@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import Result from "./Result";
 import NeonBackground from "../components/NeonBackground";
 
@@ -86,7 +86,7 @@ function Quiz() {
           <div className="w-full rounded-2xl bg-white p-8 shadow-lg">
             <div className="mb-6 flex items-center gap-3 rounded-xl bg-black px-4 py-3 text-white">
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-9 w-9 rounded-full border border-yellow-400/40 bg-black object-cover"
               />
@@ -160,3 +160,4 @@ function Quiz() {
 }
 
 export default Quiz;
+

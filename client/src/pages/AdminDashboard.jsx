@@ -1,4 +1,4 @@
-ï»¿
+
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { gsap } from "gsap";
@@ -698,7 +698,7 @@ function AdminDashboard() {
           <div className="admin-animate flex flex-col gap-4 rounded-2xl bg-black px-6 py-5 text-white shadow-lg md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-12 w-12 rounded-full border border-yellow-400/40 bg-black object-cover"
               />
@@ -739,7 +739,7 @@ function AdminDashboard() {
                 {dashboardHealth.activeStudents}
               </p>
               <p className="mt-2 text-sm text-slate-500">
-                {dashboardHealth.recentDelta >= 0 ? "â†‘" : "â†“"} {Math.abs(dashboardHealth.recentDelta)} from last weekly cycle.
+                {dashboardHealth.recentDelta >= 0 ? "?" : "?"} {Math.abs(dashboardHealth.recentDelta)} from last weekly cycle.
               </p>
             </div>
             <div className="rounded-2xl bg-white p-6 shadow-lg">
@@ -769,15 +769,15 @@ function AdminDashboard() {
           <div className="admin-animate mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-slate-700">
             <p className="font-semibold text-slate-900">Requires Attention</p>
             <div className="mt-2 space-y-1">
-              <p>â€¢ {dashboardHealth.inactiveStudents} students missed Week {lastCompletedWeek}.</p>
+              <p>• {dashboardHealth.inactiveStudents} students missed Week {lastCompletedWeek}.</p>
               <p>
-                â€¢{" "}
+                •{" "}
                 {dashboardHealth.weakestWeek
                   ? `Week ${dashboardHealth.weakestWeek.week} performance: ${dashboardHealth.weakestWeek.averageScore}% avg`
                   : "Not enough performance data yet"}.
               </p>
               <p>
-                â€¢ Next test: Week {nextTestWeek} â€¢ {nextTestDate},{" "}
+                • Next test: Week {nextTestWeek} • {nextTestDate},{" "}
                 {schedule?.windowStartTime || "7:00 AM"}
               </p>
             </div>
@@ -921,7 +921,7 @@ function AdminDashboard() {
                   Weekly Participation
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Week {latestParticipation?.week || 1} â€¢ {formatShortDate(schedule?.activeWeekDate || schedule?.nextWeekDate)}
+                  Week {latestParticipation?.week || 1} • {formatShortDate(schedule?.activeWeekDate || schedule?.nextWeekDate)}
                 </p>
               </div>
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -1069,7 +1069,7 @@ function AdminDashboard() {
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p>
                 Week {latestPerformanceWeek?.week ?? "-"}:{" "}
-                {latestWeeklyParticipation?.totalAttempts ?? 0} attempts â€¢ Avg score:{" "}
+                {latestWeeklyParticipation?.totalAttempts ?? 0} attempts • Avg score:{" "}
                 {latestPerformanceWeek ? `${latestPerformanceWeek.averageScore}%` : "-"}
               </p>
             </div>
@@ -1128,7 +1128,7 @@ function AdminDashboard() {
                   onClick={() => navigate("/admin/question-bank")}
                   className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
-                  View Bank â†’
+                  View Bank ?
                 </button>
               </div>
             </div>
@@ -1245,7 +1245,7 @@ function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <p className="text-xs text-slate-600">
                       {filteredQuestions.length} question{filteredQuestions.length === 1 ? "" : "s"}
-                      {questionWeekFilter ? ` â€¢ Week ${questionWeekFilter}` : ""}
+                      {questionWeekFilter ? ` • Week ${questionWeekFilter}` : ""}
                     </p>
                     <button
                       type="button"
@@ -1316,7 +1316,7 @@ function AdminDashboard() {
                     questionGroups.map((group) => (
                       <div key={`week-group-${group.week}`} className="rounded-xl border border-slate-200 bg-white p-4">
                         <p className="text-sm font-semibold text-slate-900">
-                          Week {group.week} â€¢{" "}
+                          Week {group.week} •{" "}
                           {formatWeekDate(
                             schedule?.week1StartDate,
                             group.week,
@@ -1552,3 +1552,4 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
+

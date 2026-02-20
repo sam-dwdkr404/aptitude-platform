@@ -1,4 +1,4 @@
-ï»¿import { useState } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import NeonBackground from "../components/NeonBackground";
 
@@ -60,7 +60,7 @@ function Signup() {
               className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.3em] text-slate-600"
             >
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-8 w-8 rounded-full border border-yellow-400/40 bg-white object-cover"
               />
@@ -128,7 +128,7 @@ function Signup() {
                 <input
                   type="password"
                   name="password"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={form.password}
                   onChange={handleChange}
                   required
@@ -143,7 +143,7 @@ function Signup() {
                 <input
                   type="password"
                   name="confirmPassword"
-                  placeholder="â€¢â€¢â€¢â€¢â€¢â€¢â€¢â€¢"
+                  placeholder="••••••••"
                   value={form.confirmPassword}
                   onChange={handleChange}
                   required
@@ -175,3 +175,4 @@ function Signup() {
 }
 
 export default Signup;
+

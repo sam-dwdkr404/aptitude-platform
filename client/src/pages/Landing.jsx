@@ -1,4 +1,4 @@
-﻿import { Link } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { useRef, useState, useEffect } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -72,7 +72,7 @@ function Landing() {
           <header className="landing-animate flex items-center justify-between rounded-2xl bg-black px-6 py-4 text-white shadow-lg">
             <div className="flex items-center gap-3">
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-10 w-10 rounded-full border border-yellow-400/40 bg-black object-cover"
               />
@@ -297,28 +297,28 @@ function Landing() {
               {[
                 {
                   name: "Abhishek Kumar",
-                  title: "Co-Founder, OSCODE · SWE, Telstra",
-                  image: "/src/assets/team/abhishek.jpg.png",
+                  title: "Co-Founder, OSCODE � SWE, Telstra",
+                  image: "/team/abhishek.jpg.png",
                 },
                 {
                   name: "Meghna Arora",
-                  title: "SDET-2, Cohesity · Mentor, OSCODE",
-                  image: "/src/assets/team/meghana.jpg.png",
+                  title: "SDET-2, Cohesity � Mentor, OSCODE",
+                  image: "/team/meghana.jpg.png",
                 },
                 {
                   name: "Shraddha Pawar",
                   title: "Vice President",
-                  image: "/src/assets/team/shraddha.jpg.png",
+                  image: "/team/shraddha.jpg.png",
                 },
                 {
                   name: "Jonah Joseph",
                   title: "General Secretary",
-                  image: "/src/assets/team/jonah.jpg.png",
+                  image: "/team/jonah.jpg.png",
                 },
                 {
                   name: "Samanvita Dharwadkar",
                   title: "Managing Director",
-                  image: "/src/assets/team/samanvita.jpg.png",
+                  image: "/team/samanvita.jpg.png",
                 },
               ].map((leader) => (
                 <div
@@ -373,7 +373,7 @@ function Landing() {
               <p>OSCODE AGMRCET Chapter | Designed &amp; Developed by Samanvita Dharwadkar</p>
               <p>For academic and structured aptitude assessment initiatives</p>
               <p>
-                Contact 📩{" "}
+                Contact ??{" "}
                 <a
                   href="mailto:samanvitard@gmail.com"
                   className="font-bold text-sky-700 underline decoration-sky-500 underline-offset-2 hover:text-sky-800 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2"
@@ -390,3 +390,4 @@ function Landing() {
 }
 
 export default Landing;
+

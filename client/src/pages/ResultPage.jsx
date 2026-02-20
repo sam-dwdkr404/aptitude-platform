@@ -1,4 +1,4 @@
-﻿import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import NeonBackground from "../components/NeonBackground";
 
 function ResultPage() {
@@ -22,7 +22,7 @@ function ResultPage() {
           <div className="rounded-2xl bg-white p-8 text-center shadow-lg">
             <div className="mx-auto mb-6 flex max-w-md items-center gap-3 rounded-xl bg-black px-4 py-3 text-white">
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-9 w-9 rounded-full border border-yellow-400/40 bg-black object-cover"
               />
@@ -122,3 +122,4 @@ function ResultPage() {
 }
 
 export default ResultPage;
+

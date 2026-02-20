@@ -1,4 +1,4 @@
-ï»¿import { useNavigate } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { useRef, useState, useEffect, useMemo } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
@@ -291,7 +291,7 @@ function StudentDashboard() {
           <div className="student-animate flex flex-col gap-4 rounded-2xl bg-black px-6 py-5 text-white shadow-lg md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <img
-                src="/src/assets/team/oscode-logo.png"
+                src="/oscode-logo.png"
                 alt="OSCODE AGMRCET logo"
                 className="h-12 w-12 rounded-full border border-yellow-400/40 bg-black object-cover"
               />
@@ -338,10 +338,10 @@ function StudentDashboard() {
                 {windowStartTime} - {windowEndTime}
               </p>
               {!isWindowOpen && (
-                <p className="mt-2 text-xs text-slate-600">{daysLabel} â€¢ Prepare now</p>
+                <p className="mt-2 text-xs text-slate-600">{daysLabel} • Prepare now</p>
               )}
               {isWindowOpen && (
-                <p className="mt-2 text-xs text-slate-600">20 questions â€¢ 30 minutes â€¢ 1 attempt</p>
+                <p className="mt-2 text-xs text-slate-600">20 questions • 30 minutes • 1 attempt</p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -507,3 +507,4 @@ function StudentDashboard() {
 }
 
 export default StudentDashboard;
+
