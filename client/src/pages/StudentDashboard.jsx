@@ -264,7 +264,7 @@ function StudentDashboard() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-900">
       <NeonBackground className="min-h-screen">
-        <div ref={containerRef} className="mx-auto max-w-5xl px-6 py-10">
+        <div ref={containerRef} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
           {activeReminder && (
             <div className="student-animate mb-4 rounded-2xl border border-yellow-300 bg-yellow-50 p-4 shadow-lg">
               <div className="flex items-start justify-between gap-3">
@@ -288,7 +288,7 @@ function StudentDashboard() {
             </div>
           )}
 
-          <div className="student-animate flex flex-col gap-4 rounded-2xl bg-black px-6 py-5 text-white shadow-lg md:flex-row md:items-center md:justify-between">
+          <div className="student-animate flex flex-col gap-4 rounded-2xl bg-black px-4 py-4 text-white shadow-lg sm:px-6 sm:py-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <img
                 src="/oscode-logo.png"
@@ -297,7 +297,7 @@ function StudentDashboard() {
               />
               <div>
                 <p className="text-xs uppercase tracking-[0.12em] text-yellow-300">Student Console</p>
-                <h1 className="text-3xl font-semibold">Hey {userName}</h1>
+                <h1 className="text-2xl font-semibold sm:text-3xl">Hey {userName}</h1>
                 <p className="text-sm text-white/70">Your weekly test status and next steps.</p>
               </div>
             </div>
@@ -338,10 +338,10 @@ function StudentDashboard() {
                 {windowStartTime} - {windowEndTime}
               </p>
               {!isWindowOpen && (
-                <p className="mt-2 text-xs text-slate-600">{daysLabel} • Prepare now</p>
+                <p className="mt-2 text-xs text-slate-600">{daysLabel} {"\u2022"} Prepare now</p>
               )}
               {isWindowOpen && (
-                <p className="mt-2 text-xs text-slate-600">20 questions • 30 minutes • 1 attempt</p>
+                <p className="mt-2 text-xs text-slate-600">20 questions {"\u2022"} 30 minutes {"\u2022"} 1 attempt</p>
               )}
               <div className="mt-3 flex flex-wrap gap-2">
                 <button
@@ -507,4 +507,6 @@ function StudentDashboard() {
 }
 
 export default StudentDashboard;
+
+
 

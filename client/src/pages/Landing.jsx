@@ -1,5 +1,5 @@
 import { Link } from "react-router-dom";
-import { useRef, useState, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { gsap } from "gsap";
 import { useGSAP } from "@gsap/react";
 import NeonBackground from "../components/NeonBackground";
@@ -17,7 +17,6 @@ function Landing() {
     averageScore: 0,
     completionRate: 0,
   });
-  const [showDemo, setShowDemo] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -67,9 +66,9 @@ function Landing() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-900">
       <NeonBackground className="min-h-screen">
-        <div ref={containerRef} className="relative mx-auto max-w-6xl px-6 pb-16 pt-8">
+        <div ref={containerRef} className="relative mx-auto max-w-6xl px-4 pb-12 pt-6 sm:px-6 sm:pb-16 sm:pt-8">
           {/* NAVBAR */}
-          <header className="landing-animate flex items-center justify-between rounded-2xl bg-black px-6 py-4 text-white shadow-lg">
+          <header className="landing-animate flex flex-col gap-3 rounded-2xl bg-black px-4 py-4 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between sm:px-6">
             <div className="flex items-center gap-3">
               <img
                 src="/oscode-logo.png"
@@ -86,15 +85,7 @@ function Landing() {
               </div>
             </div>
 
-            <div className="flex items-center gap-4 text-sm">
-              <button
-                type="button"
-                onClick={() => setShowDemo((prev) => !prev)}
-                className="rounded-md border border-white/30 px-4 py-2 text-xs text-white/80 hover:bg-white/10"
-              >
-                {showDemo ? "Close Demo" : "Demo Mode"}
-              </button>
-              <Link to="/login" className="text-white/80 hover:text-white">
+            <div className="flex w-full items-center justify-end gap-3 text-sm sm:w-auto">              <Link to="/login" className="text-white/80 hover:text-white">
                 Login
               </Link>
               <Link
@@ -106,50 +97,13 @@ function Landing() {
             </div>
           </header>
 
-          {showDemo && (
-            <section className="landing-animate mt-6 rounded-2xl bg-white p-6 shadow-lg">
-              <h3 className="text-lg font-semibold text-slate-900">
-                Demo Mode
-              </h3>
-              <p className="mt-2 text-sm text-slate-600">
-                Quick preview for presentations. No data is written in demo mode.
-              </p>
-              <div className="mt-4 grid gap-4 md:grid-cols-3">
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    View Dashboard
-                  </p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Explore student + admin layouts.
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Report Preview
-                  </p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    See reporting structure and export.
-                  </p>
-                </div>
-                <div className="rounded-xl border border-slate-200 bg-slate-50 p-4">
-                  <p className="text-xs uppercase tracking-[0.2em] text-slate-500">
-                    Test Flow
-                  </p>
-                  <p className="mt-2 text-sm text-slate-600">
-                    Walk through the test interface.
-                  </p>
-                </div>
-              </div>
-            </section>
-          )}
-
           {/* HERO */}
           <section className="landing-animate mt-10 grid gap-8 lg:grid-cols-[1.2fr_0.8fr]">
             <div className="rounded-2xl bg-white p-8 shadow-lg">
               <p className="text-xs font-semibold uppercase tracking-[0.12em] text-slate-500">
                 Weekly Aptitude Program
               </p>
-              <h2 className="mt-4 text-4xl font-semibold leading-tight">
+              <h2 className="mt-4 text-3xl font-semibold leading-tight sm:text-4xl">
                 Corporate-grade aptitude testing for placement readiness.
               </h2>
               <p className="mt-4 max-w-xl text-sm text-slate-600">
@@ -323,7 +277,7 @@ function Landing() {
               ].map((leader) => (
                 <div
                   key={leader.name}
-                  className="flex items-center justify-between rounded-2xl bg-black px-5 py-4 text-white shadow-lg"
+                  className="flex flex-col items-start gap-3 rounded-2xl bg-black px-5 py-4 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div className="flex items-center gap-4">
                     <img
@@ -390,4 +344,9 @@ function Landing() {
 }
 
 export default Landing;
+
+
+
+
+
 

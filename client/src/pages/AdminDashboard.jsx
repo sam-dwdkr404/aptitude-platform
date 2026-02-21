@@ -621,6 +621,15 @@ function AdminDashboard() {
     setExpandedQuestionId("");
   };
 
+  const handleResetQuestionFilters = async () => {
+    setQuestionWeekFilter("");
+    setQuestionSearch("");
+    setExpandedQuestionId("");
+    setEditingQuestionId("");
+    setQuestionsError("");
+    await loadOldQuestions("");
+  };
+
   const handleSendReminder = async () => {
     try {
       setReminderMessage("");
@@ -693,9 +702,9 @@ function AdminDashboard() {
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-900">
       <NeonBackground className="min-h-screen">
-        <div ref={containerRef} className="relative mx-auto max-w-6xl px-6 py-10">
+        <div ref={containerRef} className="relative mx-auto max-w-6xl px-4 py-8 sm:px-6 sm:py-10">
           {/* Header */}
-          <div className="admin-animate flex flex-col gap-4 rounded-2xl bg-black px-6 py-5 text-white shadow-lg md:flex-row md:items-center md:justify-between">
+          <div className="admin-animate flex flex-col gap-4 rounded-2xl bg-black px-4 py-4 text-white shadow-lg sm:px-6 sm:py-5 md:flex-row md:items-center md:justify-between">
             <div className="flex items-center gap-4">
               <img
                 src="/oscode-logo.png"
@@ -707,7 +716,7 @@ function AdminDashboard() {
                   Admin Console
                 </p>
                 <h1 className="text-3xl font-semibold">
-                  Mission Control Dashboard
+                  Admin Dashboard
                 </h1>
                 <p className="text-sm text-white/70">
                   Live oversight for weekly aptitude operations.
@@ -715,12 +724,6 @@ function AdminDashboard() {
               </div>
             </div>
             <div className="flex items-center gap-3">
-              <button
-                className="rounded-md border border-white/30 bg-black px-4 py-2 text-sm text-white/80 hover:bg-white/10"
-                type="button"
-              >
-                Demo Mode
-              </button>
               <button
                 onClick={handleLogout}
                 className="rounded-md bg-yellow-400 px-5 py-2 text-sm font-semibold text-black shadow hover:-translate-y-[1px]"
@@ -767,17 +770,17 @@ function AdminDashboard() {
           </div>
 
           <div className="admin-animate mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-slate-700">
-            <p className="font-semibold text-slate-900">Requires Attention</p>
+            <p className="font-semibold text-slate-900">{"\u26A0\uFE0F"} Requires Attention</p>
             <div className="mt-2 space-y-1">
-              <p>• {dashboardHealth.inactiveStudents} students missed Week {lastCompletedWeek}.</p>
+              <p>{"\u2022"} {dashboardHealth.inactiveStudents} students missed Week {lastCompletedWeek}.</p>
               <p>
-                •{" "}
+                {"\u2022"}{" "}
                 {dashboardHealth.weakestWeek
                   ? `Week ${dashboardHealth.weakestWeek.week} performance: ${dashboardHealth.weakestWeek.averageScore}% avg`
                   : "Not enough performance data yet"}.
               </p>
               <p>
-                • Next test: Week {nextTestWeek} • {nextTestDate},{" "}
+                {"\u2022"} Next test: Week {nextTestWeek} {"\u2022"} {nextTestDate},{" "}
                 {schedule?.windowStartTime || "7:00 AM"}
               </p>
             </div>
@@ -894,7 +897,7 @@ function AdminDashboard() {
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs text-slate-600">
                     Current window: {schedule?.testDayLabel || "Saturday"},{" "}
-                    {schedule?.windowStartTime || "7:00 AM"} -{" "}
+                    {schedule?.windowStartTime || "7:00 AM"} {"\u2022"}{" "}
                     {schedule?.windowEndTime || "11:59 PM"}.
                   </p>
                   <button
@@ -921,7 +924,7 @@ function AdminDashboard() {
                   Weekly Participation
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Week {latestParticipation?.week || 1} • {formatShortDate(schedule?.activeWeekDate || schedule?.nextWeekDate)}
+                  Week {latestParticipation?.week || 1} - {formatShortDate(schedule?.activeWeekDate || schedule?.nextWeekDate)}
                 </p>
               </div>
               <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -1069,7 +1072,7 @@ function AdminDashboard() {
             <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
               <p>
                 Week {latestPerformanceWeek?.week ?? "-"}:{" "}
-                {latestWeeklyParticipation?.totalAttempts ?? 0} attempts • Avg score:{" "}
+                {latestWeeklyParticipation?.totalAttempts ?? 0} attempts - Avg score:{" "}
                 {latestPerformanceWeek ? `${latestPerformanceWeek.averageScore}%` : "-"}
               </p>
             </div>
@@ -1119,7 +1122,7 @@ function AdminDashboard() {
                   Add New Question
                 </h2>
                 <p className="text-sm text-slate-500">
-                  Push updates instantly to the weekly test pipeline.
+                  Create a new question and manage existing ones (edit/delete) from Question Bank.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1245,12 +1248,12 @@ function AdminDashboard() {
                   <div className="flex items-center gap-3">
                     <p className="text-xs text-slate-600">
                       {filteredQuestions.length} question{filteredQuestions.length === 1 ? "" : "s"}
-                      {questionWeekFilter ? ` • Week ${questionWeekFilter}` : ""}
+                      {questionWeekFilter ? ` - Week ${questionWeekFilter}` : ""}
                     </p>
                     <button
                       type="button"
                       onClick={closeQuestionBank}
-                      className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                      className="w-full sm:w-auto rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       Back to Add Question
                     </button>
@@ -1283,11 +1286,7 @@ function AdminDashboard() {
                     </button>
                     <button
                       type="button"
-                      onClick={() => {
-                        setQuestionWeekFilter("");
-                        setQuestionSearch("");
-                        loadOldQuestions("");
-                      }}
+                      onClick={handleResetQuestionFilters}
                       className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
                     >
                       Reset
@@ -1316,7 +1315,7 @@ function AdminDashboard() {
                     questionGroups.map((group) => (
                       <div key={`week-group-${group.week}`} className="rounded-xl border border-slate-200 bg-white p-4">
                         <p className="text-sm font-semibold text-slate-900">
-                          Week {group.week} •{" "}
+                          Week {group.week} {"\u2022"}{" "}
                           {formatWeekDate(
                             schedule?.week1StartDate,
                             group.week,
@@ -1552,4 +1551,11 @@ function AdminDashboard() {
 }
 
 export default AdminDashboard;
+
+
+
+
+
+
+
 

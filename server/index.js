@@ -39,6 +39,41 @@ function withQuestionSequence(questions) {
   });
 }
 
+function sanitizeQuestionPayload(payload = {}) {
+  const question = String(payload.question || "").trim();
+  const options = Array.isArray(payload.options)
+    ? payload.options.map((value) => String(value || "").trim())
+    : [];
+  const correctAnswer = Number(payload.correctAnswer);
+  const explanation = String(payload.explanation || "").trim();
+  const week = Number(payload.week);
+
+  const isValid =
+    question.length > 0 &&
+    options.length === 4 &&
+    options.every((value) => value.length > 0) &&
+    Number.isInteger(correctAnswer) &&
+    correctAnswer >= 0 &&
+    correctAnswer <= 3 &&
+    explanation.length > 0 &&
+    Number.isInteger(week) &&
+    week >= 1;
+
+  if (!isValid) {
+    return { error: "Invalid question payload" };
+  }
+
+  return {
+    value: {
+      question,
+      options,
+      correctAnswer,
+      explanation,
+      week,
+    },
+  };
+}
+
 const app = express();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -426,9 +461,13 @@ app.get("/api/student/questions-history", requireAuth, async (req, res) => {
 // Add Question (Admin)
 app.post("/api/questions", async (req, res) => {
   try {
-    const question = new Question(req.body);
+    const parsed = sanitizeQuestionPayload(req.body);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
+    }
+    const question = new Question(parsed.value);
     await question.save();
-    res.json({ message: "Question added successfully" });
+    res.json({ message: "Question added successfully", question });
   } catch (err) {
     res.status(500).json({ error: "Failed to add question" });
   }
@@ -438,7 +477,11 @@ app.post("/api/questions", async (req, res) => {
 app.get("/api/questions", async (req, res) => {
   try {
     const week = Number(req.query.week);
-    const questions = await Question.find({ week });
+    if (!Number.isInteger(week) || week < 1) {
+      return res.status(400).json({ error: "Valid week is required" });
+    }
+    res.set("Cache-Control", "no-store");
+    const questions = await Question.find({ week }).sort({ createdAt: 1 });
     res.json(questions);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch questions" });
@@ -454,6 +497,7 @@ app.get("/api/admin/questions", async (req, res) => {
         ? { week }
         : {};
 
+    res.set("Cache-Control", "no-store");
     const questions = await Question.find(filter).sort({ week: 1, createdAt: 1 });
     const withSequence = withQuestionSequence(questions).sort(
       (a, b) => a.week - b.week || a.questionNumber - b.questionNumber
@@ -468,32 +512,14 @@ app.get("/api/admin/questions", async (req, res) => {
 app.put("/api/admin/questions/:id", async (req, res) => {
   try {
     const { id } = req.params;
-    const { question, options, correctAnswer, explanation, week } = req.body;
-
-    if (
-      !question ||
-      !Array.isArray(options) ||
-      options.length !== 4 ||
-      !options.every((value) => typeof value === "string" && value.trim().length > 0) ||
-      !Number.isInteger(Number(correctAnswer)) ||
-      Number(correctAnswer) < 0 ||
-      Number(correctAnswer) > 3 ||
-      !explanation ||
-      !Number.isInteger(Number(week)) ||
-      Number(week) < 1
-    ) {
-      return res.status(400).json({ error: "Invalid question payload" });
+    const parsed = sanitizeQuestionPayload(req.body);
+    if (parsed.error) {
+      return res.status(400).json({ error: parsed.error });
     }
 
     const updated = await Question.findByIdAndUpdate(
       id,
-      {
-        question: question.trim(),
-        options: options.map((value) => value.trim()),
-        correctAnswer: Number(correctAnswer),
-        explanation: explanation.trim(),
-        week: Number(week),
-      },
+      parsed.value,
       { new: true }
     );
 

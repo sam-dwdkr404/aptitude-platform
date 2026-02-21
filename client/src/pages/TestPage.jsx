@@ -78,7 +78,8 @@ function TestPage() {
         return;
       }
       try {
-        const res = await fetch(`${API_BASE}/api/questions?week=${week}`);
+        const res = await fetch(`${API_BASE}/api/questions?week=${week}&t=${Date.now()}`, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to load questions");
         const data = await res.json();
         if (isMounted) setQuestions(data);
       } catch (err) {
@@ -441,4 +442,6 @@ function TestPage() {
 }
 
 export default TestPage;
+
+
 

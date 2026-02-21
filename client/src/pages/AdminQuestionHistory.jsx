@@ -37,6 +37,15 @@ function AdminQuestionHistory() {
   const [error, setError] = useState("");
   const [schedule, setSchedule] = useState(null);
   const [expandedId, setExpandedId] = useState("");
+  const [editingId, setEditingId] = useState("");
+  const [editLoading, setEditLoading] = useState(false);
+  const [editForm, setEditForm] = useState({
+    week: 1,
+    question: "",
+    options: ["", "", "", ""],
+    correctAnswer: 0,
+    explanation: "",
+  });
 
   const loadRows = async (filter = "") => {
     try {
@@ -66,10 +75,98 @@ function AdminQuestionHistory() {
     loadRows();
   }, []);
 
+  const startEdit = (row) => {
+    const nextOptions = Array.isArray(row.options) ? [...row.options] : [];
+    while (nextOptions.length < 4) nextOptions.push("");
+
+    setEditingId(row._id);
+    setExpandedId(row._id);
+    setEditForm({
+      week: Number(row.week) || 1,
+      question: row.question || "",
+      options: nextOptions.slice(0, 4),
+      correctAnswer: Number(row.correctAnswer) || 0,
+      explanation: row.explanation || "",
+    });
+  };
+
+  const handleEditOptionChange = (index, value) => {
+    setEditForm((prev) => {
+      const options = [...prev.options];
+      options[index] = value;
+      return { ...prev, options };
+    });
+  };
+
+  const handleUpdateQuestion = async (e) => {
+    e.preventDefault();
+    if (!editingId) return;
+
+    try {
+      setEditLoading(true);
+      const res = await fetch(`${API_BASE}/api/admin/questions/${editingId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(editForm),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to update question");
+
+      setRows((prev) =>
+        prev.map((row) =>
+          row._id === editingId
+            ? {
+                ...row,
+                week: Number(editForm.week),
+                question: String(editForm.question || "").trim(),
+                options: editForm.options.map((option) => String(option || "").trim()),
+                correctAnswer: Number(editForm.correctAnswer),
+                explanation: String(editForm.explanation || "").trim(),
+              }
+            : row
+        )
+      );
+      setEditingId("");
+      await loadRows(weekFilter);
+    } catch (err) {
+      alert(err.message || "Failed to update question");
+    } finally {
+      setEditLoading(false);
+    }
+  };
+
+  const handleDeleteQuestion = async (questionId) => {
+    const ok = window.confirm("Delete this question permanently?");
+    if (!ok) return;
+
+    try {
+      const res = await fetch(`${API_BASE}/api/admin/questions/${questionId}`, {
+        method: "DELETE",
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || "Failed to delete question");
+
+      if (editingId === questionId) {
+        setEditingId("");
+      }
+      await loadRows(weekFilter);
+    } catch (err) {
+      alert(err.message || "Failed to delete question");
+    }
+  };
+
+  const handleResetFilters = async () => {
+    setWeekFilter("");
+    setExpandedId("");
+    setEditingId("");
+    setError("");
+    await loadRows("");
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-900">
       <NeonBackground className="min-h-screen">
-        <div className="mx-auto max-w-7xl px-6 py-10">
+        <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
           <div className="rounded-2xl bg-white p-6 shadow-lg">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>
@@ -96,10 +193,7 @@ function AdminQuestionHistory() {
                 </button>
                 <button
                   type="button"
-                  onClick={() => {
-                    setWeekFilter("");
-                    loadRows("");
-                  }}
+                  onClick={handleResetFilters}
                   className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Reset
@@ -107,7 +201,7 @@ function AdminQuestionHistory() {
                 <button
                   type="button"
                   onClick={() => navigate("/admin")}
-                  className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  className="w-full sm:w-auto rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
                 >
                   Back
                 </button>
@@ -194,15 +288,135 @@ function AdminQuestionHistory() {
                           </p>
                         )}
 
-                        <button
-                          type="button"
-                          onClick={() =>
-                            setExpandedId((prev) => (prev === row._id ? "" : row._id))
-                          }
-                          className="mt-3 rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                        >
-                          {isExpanded ? "Hide details" : "View question"}
-                        </button>
+                        <div className="mt-3 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => setExpandedId((prev) => (prev === row._id ? "" : row._id))}
+                            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            {isExpanded ? "Hide details" : "View question"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => startEdit(row)}
+                            className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                          >
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteQuestion(row._id)}
+                            className="rounded-md border border-red-300 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                          >
+                            Delete
+                          </button>
+                        </div>
+
+                        {editingId === row._id && (
+                          <form
+                            onSubmit={handleUpdateQuestion}
+                            className="mt-3 rounded-xl border border-yellow-300 bg-yellow-50 p-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-sm font-semibold text-slate-900">Edit this question</h4>
+                              <button
+                                type="button"
+                                onClick={() => setEditingId("")}
+                                className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                              >
+                                Cancel
+                              </button>
+                            </div>
+
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700">Week</label>
+                                <input
+                                  type="number"
+                                  min={1}
+                                  value={editForm.week}
+                                  onChange={(e) =>
+                                    setEditForm((prev) => ({ ...prev, week: Number(e.target.value) }))
+                                  }
+                                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                                  required
+                                />
+                              </div>
+
+                              <div>
+                                <label className="block text-xs font-semibold text-slate-700">Correct Option</label>
+                                <select
+                                  value={editForm.correctAnswer}
+                                  onChange={(e) =>
+                                    setEditForm((prev) => ({
+                                      ...prev,
+                                      correctAnswer: Number(e.target.value),
+                                    }))
+                                  }
+                                  className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                                >
+                                  <option value={0}>Option 1</option>
+                                  <option value={1}>Option 2</option>
+                                  <option value={2}>Option 3</option>
+                                  <option value={3}>Option 4</option>
+                                </select>
+                              </div>
+                            </div>
+
+                            <div className="mt-3">
+                              <label className="block text-xs font-semibold text-slate-700">Question</label>
+                              <input
+                                type="text"
+                                value={editForm.question}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({ ...prev, question: e.target.value }))
+                                }
+                                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                                required
+                              />
+                            </div>
+
+                            <div className="mt-3 grid gap-3 md:grid-cols-2">
+                              {editForm.options.map((option, index) => (
+                                <div key={`edit-option-${row._id}-${index}`}>
+                                  <label className="block text-xs font-semibold text-slate-700">
+                                    Option {index + 1}
+                                  </label>
+                                  <input
+                                    type="text"
+                                    value={option}
+                                    onChange={(e) => handleEditOptionChange(index, e.target.value)}
+                                    className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                                    required
+                                  />
+                                </div>
+                              ))}
+                            </div>
+
+                            <div className="mt-3">
+                              <label className="block text-xs font-semibold text-slate-700">Explanation</label>
+                              <textarea
+                                rows={3}
+                                value={editForm.explanation}
+                                onChange={(e) =>
+                                  setEditForm((prev) => ({ ...prev, explanation: e.target.value }))
+                                }
+                                className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                                required
+                              />
+                            </div>
+
+                            <div className="mt-3 flex justify-end">
+                              <button
+                                type="submit"
+                                disabled={editLoading}
+                                className="rounded-md bg-yellow-400 px-4 py-2 text-xs font-semibold text-black disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {editLoading ? "Updating..." : "Update Question"}
+                              </button>
+                            </div>
+                          </form>
+                        )}
 
                         {isExpanded && (
                           <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
@@ -235,6 +449,8 @@ function AdminQuestionHistory() {
                     </div>
                   );
                 })}
+
+              
             </div>
           </div>
         </div>
@@ -244,3 +460,5 @@ function AdminQuestionHistory() {
 }
 
 export default AdminQuestionHistory;
+
+
