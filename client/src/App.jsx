@@ -9,67 +9,72 @@ import TestPage from "./pages/TestPage";
 import ResultPage from "./pages/ResultPage";
 import StudentQuestionHistory from "./pages/StudentQuestionHistory";
 import AdminQuestionHistory from "./pages/AdminQuestionHistory";
-
+import Footer from "./components/Footer";
 
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Landing />} />
-      <Route path="/signup" element={<Signup />} />
-      <Route path="/login" element={<Login />} />
+    <div className="min-h-screen flex flex-col">
+      <main className="flex-1">
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/signup" element={<Signup />} />
+          <Route path="/login" element={<Login />} />
 
-      {/* Student */}
-      <Route
-        path="/dashboard"
-        element={
-          <ProtectedRoute role="student">
-            <StudentDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/test"
-        element={
-          <ProtectedRoute role="student">
-            <TestPage />
-          </ProtectedRoute>
-      }
-    />
-<Route
-  path="/result"
-  element={
-    <ProtectedRoute role="student">
-      <ResultPage />
-    </ProtectedRoute>
-  }
-/>
-      <Route
-        path="/question-history"
-        element={
-          <ProtectedRoute role="student">
-            <StudentQuestionHistory />
-          </ProtectedRoute>
-        }
-      />
-      {/* Admin */}
-      <Route
-        path="/admin"
-        element={
-          <ProtectedRoute role="admin">
-            <AdminDashboard />
-          </ProtectedRoute>
-        }
-      />
-      <Route
-        path="/admin/question-bank"
-        element={
-          <ProtectedRoute role="admin">
-            <AdminQuestionHistory />
-          </ProtectedRoute>
-        }
-      />
-    </Routes>
+          {/* Student */}
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute role="student">
+                <StudentDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/test"
+            element={
+              <ProtectedRoute role="student">
+                <TestPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/result"
+            element={
+              <ProtectedRoute role="student">
+                <ResultPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/question-history"
+            element={
+              <ProtectedRoute role="student">
+                <StudentQuestionHistory />
+              </ProtectedRoute>
+            }
+          />
+          {/* Admin */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminDashboard />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/question-bank"
+            element={
+              <ProtectedRoute role="admin">
+                <AdminQuestionHistory />
+              </ProtectedRoute>
+            }
+          />
+        </Routes>
+      </main>
+      <Footer />
+    </div>
   );
 }
 

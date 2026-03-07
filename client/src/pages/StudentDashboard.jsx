@@ -41,6 +41,7 @@ const RESOURCE_DOCK = [
 function StudentDashboard() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const testOverviewRef = useRef(null);
   const user = JSON.parse(localStorage.getItem("user") || "{}");
   const token = localStorage.getItem("token");
   const userName = user?.name || "Student";
@@ -59,6 +60,7 @@ function StudentDashboard() {
   const [attemptHistory, setAttemptHistory] = useState([]);
   const [showReadyCheck, setShowReadyCheck] = useState(false);
   const [activeReminder, setActiveReminder] = useState(null);
+  const [topPerformers, setTopPerformers] = useState([]);
 
   useEffect(() => {
     if (!token) {
@@ -95,6 +97,32 @@ function StudentDashboard() {
 
     loadSummary();
     const interval = setInterval(loadSummary, 20000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [token]);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const loadTopPerformers = async () => {
+      try {
+        if (!token) return;
+        const res = await fetch(`${API_BASE}/api/student/top-performers?limit=5&latestOnly=true`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) throw new Error("Failed to load top performers");
+        const data = await res.json();
+        if (isMounted) setTopPerformers(Array.isArray(data) ? data : []);
+      } catch (_err) {
+        if (isMounted) setTopPerformers([]);
+      }
+    };
+
+    loadTopPerformers();
+    const interval = setInterval(loadTopPerformers, 20000);
 
     return () => {
       isMounted = false;
@@ -227,6 +255,9 @@ function StudentDashboard() {
   );
   const windowStartTime = summary.schedule?.windowStartTime || "7:00 AM";
   const windowEndTime = summary.schedule?.windowEndTime || "11:59 PM";
+  const windowStartDayLabel = summary.schedule?.testDayLabel || "Saturday";
+  const windowEndDayLabel =
+    summary.schedule?.windowEndDayLabel || summary.schedule?.testDayLabel || "Saturday";
   const daysUntilStart = Number(summary.schedule?.daysUntilStart || 0);
 
   const statusText = useMemo(() => {
@@ -251,6 +282,89 @@ function StudentDashboard() {
         : `${daysUntilStart} days left`;
   const completionPercent = Math.min(100, Math.max(0, Number(summary.completionRate || 0)));
 
+  const latestTopWeek = useMemo(() => {
+    if (!topPerformers.length) return null;
+    return Math.max(...topPerformers.map((row) => Number(row.week) || 0));
+  }, [topPerformers]);
+
+  const visibleTopPerformers = useMemo(() => {
+    if (!latestTopWeek) return [];
+    return topPerformers
+      .filter((row) => Number(row.week) === latestTopWeek)
+      .sort((a, b) => Number(a.rank || 0) - Number(b.rank || 0));
+  }, [topPerformers, latestTopWeek]);
+
+  const statusTone =
+    attemptedCurrent
+      ? "completed"
+      : isWindowOpen && summary.currentWeek
+        ? "live"
+        : windowStatus === "pre_window" && scheduledWeek > 0
+          ? "upcoming"
+          : windowStatus === "closed" && scheduledWeek > 0
+            ? "closed"
+            : "idle";
+
+  const statusConfig = {
+    live: {
+      label: "Available",
+      headline: `Week ${summary.currentWeek} is live now`,
+      helper: "Start the test to secure your rank.",
+      container: "border-l-4 border-green-500 bg-green-50",
+      badge: "bg-green-200 text-green-800",
+      labelText: "text-green-700",
+      titleText: "text-green-900",
+    },
+    upcoming: {
+      label: "Upcoming",
+      headline: `Week ${scheduledWeek} opens at ${windowStartTime}`,
+      helper: "Prepare now to hit a top score.",
+      container: "border-l-4 border-yellow-500 bg-yellow-50",
+      badge: "bg-yellow-200 text-yellow-800",
+      labelText: "text-yellow-700",
+      titleText: "text-yellow-900",
+    },
+    closed: {
+      label: "Closed",
+      headline: `Week ${scheduledWeek} test closed`,
+      helper: "Review past questions while you wait for the next window.",
+      container: "border-l-4 border-red-500 bg-red-50",
+      badge: "bg-red-200 text-red-800",
+      labelText: "text-red-700",
+      titleText: "text-red-900",
+    },
+    completed: {
+      label: "Completed",
+      headline: `Week ${summary.currentWeek} completed`,
+      helper: "Nice work. Review solutions and aim higher next week.",
+      container: "border-l-4 border-blue-500 bg-blue-50",
+      badge: "bg-blue-200 text-blue-800",
+      labelText: "text-blue-700",
+      titleText: "text-blue-900",
+    },
+    idle: {
+      label: "Not started",
+      headline: "No active test yet",
+      helper: "Stay ready. The next test will be announced soon.",
+      container: "border-l-4 border-slate-300 bg-slate-50",
+      badge: "bg-slate-200 text-slate-700",
+      labelText: "text-slate-600",
+      titleText: "text-slate-900",
+    },
+  };
+
+  const currentStatus = statusConfig[statusTone];
+  const primaryActionLabel =
+    isWindowOpen && summary.currentWeek && !attemptedCurrent ? "Start Test" : "Prepare Now";
+  const primaryActionHandler =
+    isWindowOpen && summary.currentWeek && !attemptedCurrent
+      ? handleStartTestIntent
+      : () => openResource("https://www.geeksforgeeks.org/aptitude-for-placements/");
+  const primaryActionDisabled =
+    isWindowOpen && summary.currentWeek
+      ? checkingAttempt || attemptedCurrent
+      : false;
+
   const openResource = (url) => window.open(url, "_blank", "noopener,noreferrer");
 
   const handleCloseReminder = () => {
@@ -261,29 +375,91 @@ function StudentDashboard() {
     setActiveReminder(null);
   };
 
+  const reminderWeek = Number(activeReminder?.week || 0);
+  const reminderDateLabel =
+    reminderWeek > 0
+      ? formatWeekDate(
+          summary.schedule?.week1StartDate,
+          reminderWeek,
+          summary.schedule?.testDayOfWeek
+        )
+      : "-";
+  const reminderWindowLabel =
+    windowStartDayLabel === windowEndDayLabel
+      ? `${windowStartTime} - ${windowEndTime}`
+      : `${windowStartTime} - ${windowEndDayLabel} ${windowEndTime}`;
+  const reminderAttempted =
+    reminderWeek > 0 &&
+    attemptHistory.some((row) => Number(row.week) === reminderWeek);
+  const reminderUsesSchedule =
+    Boolean(summary.schedule?.week1StartDate) && reminderDateLabel !== "-";
+  const reminderPrimaryLabel =
+    isWindowOpen && reminderWeek === Number(summary.currentWeek) && !attemptedCurrent
+      ? "Go to Test"
+      : "Go to Test Dashboard";
+
+  const handleReminderPrimaryAction = () => {
+    if (isWindowOpen && reminderWeek === Number(summary.currentWeek) && !attemptedCurrent) {
+      handleStartTestIntent();
+      return;
+    }
+    testOverviewRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <div className="min-h-screen bg-[#f5f5f5] text-slate-900">
       <NeonBackground className="min-h-screen">
         <div ref={containerRef} className="mx-auto max-w-5xl px-4 py-8 sm:px-6 sm:py-10">
           {activeReminder && (
-            <div className="student-animate mb-4 rounded-2xl border border-yellow-300 bg-yellow-50 p-4 shadow-lg">
-              <div className="flex items-start justify-between gap-3">
+            <div className="student-animate mb-4 rounded-2xl bg-gradient-to-r from-yellow-300 via-amber-200 to-yellow-100 p-[1px] shadow-lg">
+              <div className="flex flex-col gap-4 rounded-[15px] bg-black px-4 py-4 text-white md:flex-row md:items-start md:justify-between">
                 <div>
-                  <p className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-600">
-                    Reminder
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-yellow-400 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.2em] text-black">
+                      Reminder
+                    </span>
+                    <span className="rounded-full border border-white/15 bg-white/5 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-white/80">
+                      Week {activeReminder.week || summary.currentWeek || "-"}
+                    </span>
+                  </div>
+                  <p className="mt-3 text-lg font-semibold text-white">
+                    {reminderWeek ? `Week ${reminderWeek} Test Window` : activeReminder.title}
                   </p>
-                  <p className="mt-1 text-sm font-semibold text-slate-900">
-                    {activeReminder.title}
-                  </p>
-                  <p className="mt-1 text-sm text-slate-700">{activeReminder.message}</p>
+                  {reminderUsesSchedule ? (
+                    <div className="mt-3 space-y-2 text-sm text-white/75">
+                      <p>
+                        <span className="font-semibold text-white">Date:</span> {reminderDateLabel}
+                      </p>
+                      <p>
+                        <span className="font-semibold text-white">Test Window:</span> {reminderWindowLabel}
+                      </p>
+                      <p>
+                        You can attempt the <span className="font-semibold text-white">20-question aptitude test</span> once within this window.
+                      </p>
+                      <p>
+                        <span className="font-semibold text-white">Status:</span> {reminderAttempted ? "Attempted" : "Not Attempted"}
+                      </p>
+                    </div>
+                  ) : (
+                    <p className="mt-2 max-w-3xl text-sm text-white/75">{activeReminder.message}</p>
+                  )}
                 </div>
-                <button
-                  type="button"
-                  onClick={handleCloseReminder}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Dismiss
-                </button>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    onClick={handleReminderPrimaryAction}
+                    className="rounded-md bg-yellow-400 px-4 py-2 text-xs font-semibold text-black shadow hover:bg-yellow-300"
+                  >
+                    {reminderPrimaryLabel}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleCloseReminder}
+                    className="rounded-md border border-white/15 bg-white px-4 py-2 text-xs font-semibold text-slate-800 hover:bg-slate-100"
+                  >
+                    Dismiss
+                  </button>
+                </div>
               </div>
             </div>
           )}
@@ -309,8 +485,23 @@ function StudentDashboard() {
             </button>
           </div>
 
-          <div className="student-animate mt-6 rounded-2xl bg-white p-6 shadow-lg">
-            <h2 className="text-xl font-semibold text-slate-900">{statusText}</h2>
+          <div ref={testOverviewRef} className="student-animate mt-6 rounded-2xl bg-white p-6 shadow-lg">
+            <div className={`rounded-xl p-5 ${currentStatus.container}`}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className={`text-xs font-semibold uppercase tracking-wide ${currentStatus.labelText}`}>
+                    {currentStatus.label}
+                  </p>
+                  <h2 className={`mt-1 text-lg font-semibold ${currentStatus.titleText}`}>
+                    {currentStatus.headline}
+                  </h2>
+                  <p className="mt-1 text-sm text-slate-600">{currentStatus.helper}</p>
+                </div>
+                <span className={`rounded-full px-3 py-1 text-xs font-semibold ${currentStatus.badge}`}>
+                  {currentStatus.label}
+                </span>
+              </div>
+            </div>
             {attemptedCurrent && latestCurrentWeekAttempt ? (
               <div className="mt-3 space-y-1 text-sm text-slate-700">
                 <p>
@@ -325,17 +516,29 @@ function StudentDashboard() {
               </div>
             ) : null}
 
-            <div className="mt-4 rounded-xl border border-yellow-300 bg-yellow-50 px-4 py-4 text-sm text-slate-700">
-              <p className="font-semibold">
-                {isWindowOpen ? `WEEK ${cardWeek} TEST IS LIVE` : `NEXT TEST: WEEK ${cardWeek}`}
-              </p>
-              <p className="mt-2">{summary.schedule?.testDayLabel || "Saturday"}: {cardDate}</p>
-              <p>Starts: {windowStartTime}</p>
-              <p>Ends: {windowEndTime}</p>
-              <div className="my-3 h-px bg-yellow-300" />
-              <p>Attempt only on {summary.schedule?.testDayLabel || "Saturday"}</p>
-              <p>
-                {windowStartTime} - {windowEndTime}
+            <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 px-4 py-4 text-sm text-slate-700">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <p className="font-semibold text-slate-900">
+                  Next Test: Week {cardWeek}
+                </p>
+                <span className="rounded-full bg-slate-200 px-2 py-1 text-xs text-slate-600">
+                  {windowStartDayLabel} to {windowEndDayLabel}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">Date</p>
+                  <p className="text-sm font-semibold text-slate-900">{cardDate}</p>
+                </div>
+                <div className="rounded-lg border border-slate-200 bg-white p-3">
+                  <p className="text-xs text-slate-500">Test Window</p>
+                  <p className="text-sm font-semibold text-slate-900">
+                    {windowStartTime} - {windowEndTime}
+                  </p>
+                </div>
+              </div>
+              <p className="mt-3 text-xs font-semibold text-red-600">
+                Attempt allowed only during this time.
               </p>
               {!isWindowOpen && (
                 <p className="mt-2 text-xs text-slate-600">{daysLabel} {"\u2022"} Prepare now</p>
@@ -343,36 +546,28 @@ function StudentDashboard() {
               {isWindowOpen && (
                 <p className="mt-2 text-xs text-slate-600">20 questions {"\u2022"} 30 minutes {"\u2022"} 1 attempt</p>
               )}
-              <div className="mt-3 flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => openResource("https://www.geeksforgeeks.org/aptitude-for-placements/")}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Go to Prep Hub
-                </button>
-                <button
-                  type="button"
-                  onClick={() => openResource("https://www.indiabix.com/aptitude/questions-and-answers/")}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Practice Questions
-                </button>
-              </div>
             </div>
 
-            <div className="mt-5 flex flex-wrap gap-3">
+            <div className="mt-4 flex flex-wrap gap-3">
               <button
-                onClick={handleStartTestIntent}
-                disabled={checkingAttempt || !summary.currentWeek || attemptedCurrent}
-                className="rounded-md bg-yellow-400 px-6 py-3 text-sm font-semibold text-black shadow hover:-translate-y-[1px] disabled:cursor-not-allowed disabled:opacity-60"
+                type="button"
+                onClick={primaryActionHandler}
+                disabled={primaryActionDisabled || (!summary.currentWeek && isWindowOpen)}
+                className="rounded-lg bg-blue-600 px-5 py-2 text-sm font-semibold text-white shadow hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {attemptedCurrent ? "Week Completed" : checkingAttempt ? "Checking..." : summary.currentWeek ? "Start Test" : "No Active Week"}
+                {primaryActionLabel}
+              </button>
+              <button
+                type="button"
+                onClick={() => openResource("https://www.indiabix.com/aptitude/questions-and-answers/")}
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
+              >
+                Practice Questions
               </button>
               <button
                 type="button"
                 onClick={() => navigate("/question-history")}
-                className="rounded-md border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                className="rounded-lg bg-slate-100 px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-200"
               >
                 Review Past Questions
               </button>
@@ -414,6 +609,101 @@ function StudentDashboard() {
                 </div>
               </div>
             )}
+          </div>
+
+          <div className="student-animate mt-8 rounded-2xl border border-slate-200 bg-white p-6 shadow-lg">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-xl font-semibold text-slate-900">
+                  Top Performers {latestTopWeek ? `(Week ${latestTopWeek})` : ""}
+                </h2>
+                <p className="mt-1 text-sm text-slate-600">
+                  {latestTopWeek
+                    ? `Top performers from Week ${latestTopWeek}.`
+                    : "Top performers from the latest test."}
+                </p>
+              </div>
+              <span className="rounded-full border border-yellow-200 bg-yellow-100 px-3 py-1 text-xs font-semibold text-yellow-700">
+                Auto-updates every 20s
+              </span>
+            </div>
+
+            <div className="mt-4 overflow-x-auto rounded-xl border border-slate-200 bg-white">
+              <table className="min-w-full text-sm">
+                <thead className="bg-slate-50 text-slate-600">
+                  <tr>
+                    <th className="px-4 py-3 text-left">Rank</th>
+                    <th className="px-4 py-3 text-left">Student</th>
+                    <th className="px-4 py-3 text-left">Score</th>
+                    <th className="px-4 py-3 text-left">Date</th>
+                  </tr>
+                </thead>
+              </table>
+
+              {visibleTopPerformers.length === 0 ? (
+                <div className="flex flex-col items-center justify-center gap-2 px-6 py-10 text-center text-slate-600">
+                  <div className="text-xs font-semibold uppercase tracking-[0.2em] text-slate-400">Leaderboard</div>
+                  <p className="text-base font-semibold text-slate-900">No attempts yet</p>
+                  <p className="text-sm text-slate-600">
+                    Be the first to take the test and secure Rank #1 on the leaderboard.
+                  </p>
+                  <button
+                    type="button"
+                    onClick={handleStartTestIntent}
+                    disabled={checkingAttempt || !summary.currentWeek || attemptedCurrent}
+                    className="mt-2 rounded-lg bg-yellow-500 px-4 py-2 text-sm font-semibold text-black hover:bg-yellow-400 disabled:cursor-not-allowed disabled:opacity-60"
+                  >
+                    Take Test
+                  </button>
+                </div>
+              ) : (
+                <table className="min-w-full text-sm">
+                  <tbody>
+                    {visibleTopPerformers.map((row) => {
+                      const rank = Number(row.rank || 0);
+                      const highlight =
+                        rank === 1
+                          ? "bg-yellow-50"
+                          : rank === 2
+                            ? "bg-slate-50"
+                            : rank === 3
+                              ? "bg-orange-50"
+                              : "bg-white";
+                      const badge =
+                        rank === 1
+                          ? "bg-yellow-400 text-black"
+                          : rank === 2
+                            ? "bg-slate-400 text-white"
+                            : rank === 3
+                              ? "bg-orange-400 text-white"
+                              : "bg-slate-200 text-slate-700";
+                      const dateLabel = row.createdAt
+                        ? new Date(row.createdAt).toLocaleDateString("en-US", {
+                            month: "short",
+                            day: "numeric",
+                          })
+                        : "-";
+                      return (
+                        <tr key={`${row.week}-${row.rank}`} className={`border-t border-slate-200 ${highlight}`}>
+                          <td className="px-4 py-3">
+                            <span
+                              className={`inline-flex min-w-[44px] items-center justify-center rounded-full px-2 py-1 text-xs font-semibold ${badge}`}
+                            >
+                              #{rank || "-"}
+                            </span>
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-slate-900">
+                            {row.studentName || "Unknown"}
+                          </td>
+                          <td className="px-4 py-3 font-semibold text-slate-900">{row.score}</td>
+                          <td className="px-4 py-3 text-slate-600">{dateLabel}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
           </div>
 
           <div className="student-animate mt-8 rounded-2xl bg-white p-6 shadow-lg">

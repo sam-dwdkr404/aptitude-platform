@@ -167,48 +167,50 @@ function AdminQuestionHistory() {
     <div className="min-h-screen bg-[#f5f5f5] text-slate-900">
       <NeonBackground className="min-h-screen">
         <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 sm:py-10">
-          <div className="rounded-2xl bg-white p-6 shadow-lg">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div>
-                <h1 className="text-2xl font-semibold">Question Bank</h1>
-                <p className="mt-1 text-sm text-slate-600">
-                  Manage and review questions with clean preview cards.
-                </p>
-              </div>
-              <div className="flex items-center gap-2">
-                <input
-                  type="number"
-                  min={1}
-                  value={weekFilter}
-                  onChange={(e) => setWeekFilter(e.target.value)}
-                  placeholder="Filter by week"
-                  className="w-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
-                />
-                <button
-                  type="button"
-                  onClick={() => loadRows(weekFilter)}
-                  className="rounded-md bg-yellow-400 px-3 py-2 text-xs font-semibold text-black"
-                >
-                  Apply
-                </button>
-                <button
-                  type="button"
-                  onClick={handleResetFilters}
-                  className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Reset
-                </button>
-                <button
-                  type="button"
-                  onClick={() => navigate("/admin")}
-                  className="w-full sm:w-auto rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
-                >
-                  Back
-                </button>
+          <div className="rounded-2xl bg-white shadow-lg">
+            <div className="sticky top-4 z-20 rounded-t-2xl border-b border-slate-200 bg-white/95 px-6 py-6 shadow-sm backdrop-blur">
+              <div className="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+                <div>
+                  <h1 className="text-2xl font-semibold">Question Bank</h1>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Manage and review questions with clean preview cards.
+                  </p>
+                </div>
+                <div className="flex flex-wrap items-center gap-2 xl:justify-end">
+                  <input
+                    type="number"
+                    min={1}
+                    value={weekFilter}
+                    onChange={(e) => setWeekFilter(e.target.value)}
+                    placeholder="Filter by week"
+                    className="w-full sm:w-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => loadRows(weekFilter)}
+                    className="rounded-md bg-yellow-400 px-4 py-2 text-sm font-semibold text-black"
+                  >
+                    Apply
+                  </button>
+                  <button
+                    type="button"
+                    onClick={handleResetFilters}
+                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Reset
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => navigate("/admin")}
+                    className="rounded-md border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                  >
+                    Back
+                  </button>
+                </div>
               </div>
             </div>
 
-            <div className="mt-6 space-y-5">
+            <div className="space-y-5 p-6">
               {loading && (
                 <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500">
                   Loading question history...

@@ -74,6 +74,113 @@ function sanitizeQuestionPayload(payload = {}) {
   };
 }
 
+async function getRankedTopPerformers({
+  limit = 5,
+  week,
+  latestOnly = false,
+  includeEmail = false,
+} = {}) {
+  const safeLimit = Math.max(1, Math.min(20, Number(limit) || 5));
+  const requestedWeek = Number(week || 0);
+
+  const attempts = await TestAttempt.aggregate([
+    {
+      $lookup: {
+        from: "users",
+        localField: "userEmail",
+        foreignField: "email",
+        as: "user",
+      },
+    },
+    { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
+    {
+      $project: {
+        week: "$week",
+        studentName: "$user.name",
+        email: "$userEmail",
+        score: "$score",
+        createdAt: "$createdAt",
+      },
+    },
+    { $sort: { week: 1, score: -1, createdAt: 1 } },
+  ]);
+
+  const byWeek = {};
+  attempts.forEach((attempt) => {
+    const attemptWeek = Number(attempt.week);
+    if (!Number.isFinite(attemptWeek) || attemptWeek < 1) return;
+    if (!byWeek[attemptWeek]) byWeek[attemptWeek] = new Map();
+
+    const emailKey = String(attempt.email || "").toLowerCase();
+    if (!emailKey) return;
+
+    const existing = byWeek[attemptWeek].get(emailKey);
+    if (!existing) {
+      byWeek[attemptWeek].set(emailKey, attempt);
+      return;
+    }
+
+    const existingScore = Number(existing.score || 0);
+    const nextScore = Number(attempt.score || 0);
+    const existingTime = new Date(existing.createdAt).getTime();
+    const nextTime = new Date(attempt.createdAt).getTime();
+
+    if (nextScore > existingScore || (nextScore === existingScore && nextTime < existingTime)) {
+      byWeek[attemptWeek].set(emailKey, attempt);
+    }
+  });
+
+  const availableWeeks = Object.keys(byWeek)
+    .map((value) => Number(value))
+    .filter((value) => Number.isFinite(value) && value >= 1)
+    .sort((a, b) => a - b);
+
+  let targetWeeks = availableWeeks;
+  if (Number.isFinite(requestedWeek) && requestedWeek >= 1) {
+    targetWeeks = availableWeeks.filter((value) => value === requestedWeek);
+  } else if (latestOnly && availableWeeks.length > 0) {
+    targetWeeks = [availableWeeks[availableWeeks.length - 1]];
+  }
+
+  return targetWeeks.flatMap((targetWeek) => {
+    let displayedRank = 0;
+    let previousScore = null;
+
+    return [...byWeek[targetWeek].values()]
+      .sort((a, b) => {
+        const scoreDelta = Number(b.score || 0) - Number(a.score || 0);
+        if (scoreDelta !== 0) return scoreDelta;
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
+      })
+      .slice(0, safeLimit)
+      .map((item, index) => {
+        const score = Number(item.score || 0);
+        if (previousScore === null || score !== previousScore) {
+          displayedRank = index + 1;
+        }
+        previousScore = score;
+
+        const weekInfo = getWeekInfoForWeek(targetWeek);
+        const payload = {
+          week: targetWeek,
+          weekStartDate: weekInfo.weekStartDate,
+          weekStartDay: weekInfo.weekStartDay,
+          weekStartYear: weekInfo.weekStartYear,
+          rank: displayedRank,
+          studentName: item.studentName || "Unknown",
+          score: item.score,
+          createdAt: item.createdAt,
+        };
+
+        if (includeEmail) {
+          payload.email = item.email;
+        }
+
+        return payload;
+      });
+  });
+}
+
 const app = express();
 const client = new OAuth2Client(process.env.GOOGLE_CLIENT_ID);
 
@@ -130,8 +237,22 @@ app.post("/api/admin/reminders/send", async (req, res) => {
   try {
     const schedule = getScheduleInfo();
     const week = Number(req.body?.week || schedule.upcomingWeek || schedule.scheduledWeek || 1);
-    const title = `Week ${week} Test Reminder`;
-    const message = `Week ${week} test is scheduled on ${schedule.testDayLabel || "Saturday"} at ${schedule.windowStartTime || "7:00 AM"}. Please attempt on time.`;
+    const weekInfo = getWeekInfoForWeek(week);
+    const startDayLabel = weekInfo.weekStartDay || schedule.testDayLabel || "Saturday";
+    const endDayLabel = schedule.windowEndDayLabel || schedule.testDayLabel || "Saturday";
+    const startTimeLabel = schedule.windowStartTime || "7:00 AM";
+    const endTimeLabel = schedule.windowEndTime || "11:59 PM";
+    const dateLabel = weekInfo.weekStartDate || "";
+    const windowLabel =
+      startDayLabel === endDayLabel
+        ? `${startDayLabel} ${startTimeLabel} to ${endTimeLabel}`
+        : `${startDayLabel} ${startTimeLabel} to ${endDayLabel} ${endTimeLabel}`;
+    const title = `Week ${week} Test Window Alert`;
+    const message = dateLabel
+      ? `Week ${week} aptitude test is scheduled for ${startDayLabel}, ${dateLabel}. Window: ${windowLabel}. Attempt once within the allowed time.`
+      : `Week ${week} aptitude test window is ${windowLabel}. Attempt once within the allowed time.`;
+
+    await Reminder.updateMany({ active: true }, { $set: { active: false } });
 
     const reminder = await Reminder.create({
       week,
@@ -182,6 +303,7 @@ app.put("/api/admin/schedule-config", async (req, res) => {
       windowStartMinute,
       windowEndHour,
       windowEndMinute,
+      windowEndDayOffset,
     } = req.body || {};
 
     if (!week1StartDate || typeof week1StartDate !== "string") {
@@ -192,12 +314,14 @@ app.put("/api/admin/schedule-config", async (req, res) => {
     const startMinute = Number(windowStartMinute);
     const endHour = Number(windowEndHour);
     const endMinute = Number(windowEndMinute);
-    const startTotal = (startHour * 60) + startMinute;
-    const endTotal = (endHour * 60) + endMinute;
     const dayOfWeek = Number(testDayOfWeek);
+    const endDayOffset = Number(windowEndDayOffset ?? 0);
 
     if (!Number.isFinite(dayOfWeek) || dayOfWeek < 0 || dayOfWeek > 6) {
       return res.status(400).json({ error: "testDayOfWeek must be between 0 and 6" });
+    }
+    if (!Number.isFinite(endDayOffset) || endDayOffset < 0 || endDayOffset > 6) {
+      return res.status(400).json({ error: "windowEndDayOffset must be between 0 and 6" });
     }
     if (
       !Number.isFinite(startHour) ||
@@ -207,10 +331,6 @@ app.put("/api/admin/schedule-config", async (req, res) => {
     ) {
       return res.status(400).json({ error: "Window start/end time is invalid" });
     }
-    if (startTotal >= endTotal) {
-      return res.status(400).json({ error: "Window end time must be later than start time" });
-    }
-
     const nextConfig = await saveScheduleConfig({
       week1StartDate,
       testDayOfWeek: dayOfWeek,
@@ -218,6 +338,7 @@ app.put("/api/admin/schedule-config", async (req, res) => {
       windowStartMinute: Number(windowStartMinute),
       windowEndHour: Number(windowEndHour),
       windowEndMinute: Number(windowEndMinute),
+      windowEndDayOffset: endDayOffset,
     });
 
     res.json({
@@ -267,6 +388,24 @@ app.get("/api/public/stats", async (req, res) => {
     });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch public stats" });
+  }
+});
+
+app.get("/api/public/top-performers", async (req, res) => {
+  try {
+    const limit = Number(req.query.limit || 1);
+    const week = Number(req.query.week || 0);
+    const latestOnly = String(req.query.latestOnly || "true").toLowerCase() !== "false";
+    const result = await getRankedTopPerformers({
+      limit,
+      week,
+      latestOnly,
+      includeEmail: false,
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch public top performers" });
   }
 });
 
@@ -795,78 +934,33 @@ app.get("/api/admin/reports/performance", async (req, res) => {
 app.get("/api/admin/reports/top-scorers", async (req, res) => {
   try {
     const limit = Number(req.query.limit || 3);
-    const attempts = await TestAttempt.aggregate([
-      {
-        $lookup: {
-          from: "users",
-          localField: "userEmail",
-          foreignField: "email",
-          as: "user",
-        },
-      },
-      { $unwind: { path: "$user", preserveNullAndEmptyArrays: true } },
-      {
-        $project: {
-          week: "$week",
-          studentName: "$user.name",
-          email: "$userEmail",
-          score: "$score",
-          createdAt: "$createdAt",
-        },
-      },
-      { $sort: { week: 1, score: -1, createdAt: 1 } },
-    ]);
-
-    // Keep only one best entry per student per week.
-    const byWeek = {};
-    attempts.forEach((attempt) => {
-      const week = Number(attempt.week);
-      if (!Number.isFinite(week) || week < 1) return;
-      if (!byWeek[week]) byWeek[week] = new Map();
-
-      const emailKey = String(attempt.email || "").toLowerCase();
-      if (!emailKey) return;
-
-      const existing = byWeek[week].get(emailKey);
-      if (!existing) {
-        byWeek[week].set(emailKey, attempt);
-        return;
-      }
-
-      const existingScore = Number(existing.score || 0);
-      const nextScore = Number(attempt.score || 0);
-      const existingTime = new Date(existing.createdAt).getTime();
-      const nextTime = new Date(attempt.createdAt).getTime();
-      if (nextScore > existingScore || (nextScore === existingScore && nextTime < existingTime)) {
-        byWeek[week].set(emailKey, attempt);
-      }
+    const result = await getRankedTopPerformers({
+      limit,
+      includeEmail: true,
     });
-
-    const result = Object.keys(byWeek)
-      .sort((a, b) => Number(a) - Number(b))
-      .flatMap((week) =>
-        [...byWeek[week].values()]
-          .sort((a, b) => Number(b.score || 0) - Number(a.score || 0))
-          .slice(0, limit)
-          .map((item, idx) => {
-          const weekInfo = getWeekInfoForWeek(Number(week));
-          return {
-            week: Number(week),
-            weekStartDate: weekInfo.weekStartDate,
-            weekStartDay: weekInfo.weekStartDay,
-            weekStartYear: weekInfo.weekStartYear,
-            rank: idx + 1,
-            studentName: item.studentName || "Unknown",
-            email: item.email,
-            score: item.score,
-            createdAt: item.createdAt,
-          };
-          })
-      );
 
     res.json(result);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch top scorers report" });
+  }
+});
+
+// Student: Top performers (for all logged-in users)
+app.get("/api/student/top-performers", requireAuth, async (req, res) => {
+  try {
+    const limit = Number(req.query.limit || 5);
+    const weekFilter = Number(req.query.week || 0);
+    const latestOnly = String(req.query.latestOnly || "false").toLowerCase() === "true";
+    const result = await getRankedTopPerformers({
+      limit,
+      week: weekFilter,
+      latestOnly,
+      includeEmail: false,
+    });
+
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: "Failed to fetch top performers" });
   }
 });
 

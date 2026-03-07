@@ -2,6 +2,7 @@ const ScheduleConfig = require("../models/ScheduleConfig");
 
 const DEFAULT_WEEK1_START_DATE = "2026-02-21";
 const DEFAULT_TEST_DAY_OF_WEEK = 6; // Saturday
+const DEFAULT_WINDOW_END_DAY_OFFSET = 0;
 
 function toInt(value, fallback) {
   const next = Number(value);
@@ -65,6 +66,11 @@ function getDefaultConfig() {
       0,
       59
     ),
+    windowEndDayOffset: clamp(
+      toInt(process.env.TEST_WINDOW_END_DAY_OFFSET, DEFAULT_WINDOW_END_DAY_OFFSET),
+      0,
+      6
+    ),
   };
 }
 
@@ -85,6 +91,11 @@ function sanitizeConfig(input, fallback = getDefaultConfig()) {
     windowStartMinute: clamp(toInt(base.windowStartMinute, fallback.windowStartMinute), 0, 59),
     windowEndHour: clamp(toInt(base.windowEndHour, fallback.windowEndHour), 0, 23),
     windowEndMinute: clamp(toInt(base.windowEndMinute, fallback.windowEndMinute), 0, 59),
+    windowEndDayOffset: clamp(
+      toInt(base.windowEndDayOffset, fallback.windowEndDayOffset),
+      0,
+      6
+    ),
   };
 }
 

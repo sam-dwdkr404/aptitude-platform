@@ -104,15 +104,27 @@ function getWeekWindowForWeek(weekNumber) {
     0,
     0
   );
+  const startTotal =
+    Number(config.windowStartHour) * 60 + Number(config.windowStartMinute);
+  const endTotal =
+    Number(config.windowEndHour) * 60 + Number(config.windowEndMinute);
+  const endDayOffset = Math.max(0, Math.min(6, Number(config.windowEndDayOffset) || 0));
+  const endBaseDate = new Date(baseDate);
+  endBaseDate.setDate(endBaseDate.getDate() + endDayOffset);
   const windowEnd = new Date(
-    baseDate.getFullYear(),
-    baseDate.getMonth(),
-    baseDate.getDate(),
+    endBaseDate.getFullYear(),
+    endBaseDate.getMonth(),
+    endBaseDate.getDate(),
     Number(config.windowEndHour),
     Number(config.windowEndMinute),
     59,
     999
   );
+  // If end time is earlier than or equal to start time, roll to next day
+  // (supports windows that cross midnight, e.g., Sat 12:00 PM to Sun 12:00 AM).
+  if (endDayOffset === 0 && endTotal <= startTotal) {
+    windowEnd.setDate(windowEnd.getDate() + 1);
+  }
 
   return {
     ...weekInfo,
@@ -128,6 +140,9 @@ function getWeekWindowForWeek(weekNumber) {
 
 function getScheduleInfo(now = new Date()) {
   const config = getScheduleConfig();
+  const endDayOffset = Math.max(0, Math.min(6, Number(config.windowEndDayOffset) || 0));
+  const endDayIndex = (Number(config.testDayOfWeek) + endDayOffset) % 7;
+  const endDayLabel = DAY_NAMES[endDayIndex] || "Sunday";
   const nowDate = new Date(now);
   const today = toDateOnly(nowDate);
   const week1 = getWeek1StartDate();
@@ -161,6 +176,8 @@ function getScheduleInfo(now = new Date()) {
       ),
       testDayOfWeek: Number(config.testDayOfWeek),
       testDayLabel: DAY_NAMES[Number(config.testDayOfWeek)] || "Saturday",
+      windowEndDayOffset: endDayOffset,
+      windowEndDayLabel: endDayLabel,
       windowStartHour: Number(config.windowStartHour),
       windowStartMinute: Number(config.windowStartMinute),
       windowEndHour: Number(config.windowEndHour),
@@ -219,6 +236,8 @@ function getScheduleInfo(now = new Date()) {
     ),
     testDayOfWeek: Number(config.testDayOfWeek),
     testDayLabel: DAY_NAMES[Number(config.testDayOfWeek)] || "Saturday",
+    windowEndDayOffset: endDayOffset,
+    windowEndDayLabel: endDayLabel,
     windowStartHour: Number(config.windowStartHour),
     windowStartMinute: Number(config.windowStartMinute),
     windowEndHour: Number(config.windowEndHour),

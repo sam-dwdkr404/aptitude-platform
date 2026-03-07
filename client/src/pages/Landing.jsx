@@ -6,49 +6,85 @@ import NeonBackground from "../components/NeonBackground";
 import { BarChart3, ShieldCheck, Trophy, ClipboardList } from "lucide-react";
 
 const API_BASE = import.meta.env.VITE_API_BASE || "http://localhost:5000";
+const DEFAULT_STATS = {
+  totalUsers: 0,
+  totalTests: 0,
+  activeWeeks: 0,
+  testsDeployed: 0,
+  averageScore: 0,
+  completionRate: 0,
+};
+const LEADERSHIP_TEAM = [
+  {
+    name: "Abhishek Kumar",
+    title: "Co-Founder, OSCODE - SWE, Telstra",
+    image: "/team/abhishek.jpg.png",
+  },
+  {
+    name: "Shraddha Pawar",
+    title: "Vice President",
+    image: "/team/shraddha.jpg.png",
+  },
+  {
+    name: "Jonah Joseph",
+    title: "General Secretary",
+    image: "/team/jonah.jpg.png",
+  },
+  {
+    name: "Samanvita Dharwadkar",
+    title: "Managing Director",
+    image: "/team/samanvita.jpg.png",
+  },
+];
 
 function Landing() {
   const containerRef = useRef(null);
-  const [stats, setStats] = useState({
-    totalUsers: 0,
-    totalTests: 0,
-    activeWeeks: 0,
-    testsDeployed: 0,
-    averageScore: 0,
-    completionRate: 0,
-  });
+  const [stats, setStats] = useState(DEFAULT_STATS);
+  const [topPerformer, setTopPerformer] = useState(null);
 
   useEffect(() => {
     let isMounted = true;
 
-    const loadStats = async () => {
-      try {
-        const res = await fetch(`${API_BASE}/api/public/stats`);
-        if (!res.ok) throw new Error("Failed to load stats");
-        const data = await res.json();
+    const loadPublicData = async () => {
+      const [statsResult, topPerformerResult] = await Promise.allSettled([
+        fetch(`${API_BASE}/api/public/stats`),
+        fetch(`${API_BASE}/api/public/top-performers?limit=1`),
+      ]);
+
+      if (statsResult.status === "fulfilled" && statsResult.value.ok) {
+        const data = await statsResult.value.json();
         if (isMounted) setStats(data);
-      } catch (err) {
+      } else if (isMounted) {
+        setStats(DEFAULT_STATS);
+      }
+
+      if (topPerformerResult.status === "fulfilled" && topPerformerResult.value.ok) {
+        const data = await topPerformerResult.value.json();
         if (isMounted) {
-          setStats({
-            totalUsers: 0,
-            totalTests: 0,
-            activeWeeks: 0,
-            testsDeployed: 0,
-            averageScore: 0,
-            completionRate: 0,
-          });
+          setTopPerformer(Array.isArray(data) && data.length > 0 ? data[0] : null);
         }
+      } else if (isMounted) {
+        setTopPerformer(null);
       }
     };
 
-    loadStats();
-    const interval = setInterval(loadStats, 20000);
+    loadPublicData();
+    const interval = setInterval(loadPublicData, 20000);
 
     return () => {
       isMounted = false;
       clearInterval(interval);
     };
   }, []);
+
+  const formatCompactDate = (value) => {
+    if (!value) return "-";
+    return new Date(value).toLocaleDateString("en-US", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+    });
+  };
 
   useGSAP(
     () => {
@@ -248,33 +284,7 @@ function Landing() {
           <section className="landing-animate mt-12">
             <h3 className="text-2xl font-semibold">OSCODE leadership</h3>
             <div className="mt-6 grid gap-4 md:grid-cols-2">
-              {[
-                {
-                  name: "Abhishek Kumar",
-                  title: "Co-Founder, OSCODE · SWE, Telstra",
-                  image: "/team/abhishek.jpg.png",
-                },
-                {
-                  name: "Meghna Arora",
-                  title: "SDET-2, Cohesity · Mentor, OSCODE",
-                  image: "/team/meghana.jpg.png",
-                },
-                {
-                  name: "Shraddha Pawar",
-                  title: "Vice President",
-                  image: "/team/shraddha.jpg.png",
-                },
-                {
-                  name: "Jonah Joseph",
-                  title: "General Secretary",
-                  image: "/team/jonah.jpg.png",
-                },
-                {
-                  name: "Samanvita Dharwadkar",
-                  title: "Managing Director",
-                  image: "/team/samanvita.jpg.png",
-                },
-              ].map((leader) => (
+              {LEADERSHIP_TEAM.map((leader) => (
                 <div
                   key={leader.name}
                   className="flex flex-col items-start gap-3 rounded-2xl bg-black px-5 py-4 text-white shadow-lg sm:flex-row sm:items-center sm:justify-between"
@@ -295,6 +305,71 @@ function Landing() {
                   </span>
                 </div>
               ))}
+
+              <div className="rounded-2xl bg-gradient-to-br from-yellow-300 via-amber-200 to-yellow-100 p-[1px] shadow-lg md:col-span-2">
+                <div className="rounded-[15px] bg-black px-5 py-5 text-white">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                    <div className="flex items-start gap-4">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-yellow-400 text-black">
+                        <Trophy size={22} />
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-yellow-300">
+                          Live Top Performer
+                        </p>
+                        <p className="mt-1 text-sm text-white/70">
+                          Public leaderboard card. Refreshes every 20 seconds for everyone.
+                        </p>
+                      </div>
+                    </div>
+                    <span className="rounded-full border border-yellow-400/40 px-3 py-1 text-xs text-yellow-300">
+                      Rank #1
+                    </span>
+                  </div>
+
+                  {topPerformer ? (
+                    <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
+                        <p className="text-2xl font-semibold text-white">
+                          {topPerformer.studentName || "Unknown"}
+                        </p>
+                        <p className="mt-1 text-sm text-white/70">
+                          Week {topPerformer.week} leader
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-3">
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-wide text-white/50">Score</p>
+                          <p className="mt-2 text-xl font-semibold text-yellow-300">
+                            {topPerformer.score}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-wide text-white/50">Date</p>
+                          <p className="mt-2 text-sm font-semibold text-white">
+                            {formatCompactDate(topPerformer.createdAt)}
+                          </p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                          <p className="text-xs uppercase tracking-wide text-white/50">Rank</p>
+                          <p className="mt-2 text-xl font-semibold text-white">
+                            #{topPerformer.rank || 1}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mt-5 rounded-2xl border border-white/10 bg-white/5 p-5">
+                      <p className="text-lg font-semibold text-white">
+                        No top performer yet
+                      </p>
+                      <p className="mt-2 text-sm text-white/70">
+                        Once students submit attempts, the current leader will appear here automatically.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           </section>
 
@@ -344,9 +419,4 @@ function Landing() {
 }
 
 export default Landing;
-
-
-
-
-
 

@@ -22,6 +22,7 @@ const pad2 = (value) => String(value).padStart(2, "0");
 function AdminDashboard() {
   const navigate = useNavigate();
   const containerRef = useRef(null);
+  const weekAutoSetRef = useRef(false);
 
   const [stats, setStats] = useState({
     totalAttempts: 0,
@@ -75,6 +76,7 @@ function AdminDashboard() {
     testDayOfWeek: 6,
     windowStartTime: "07:00",
     windowEndTime: "23:59",
+    windowEndDayOffset: 0,
   });
 
   const readApiResponse = async (res, fallbackMessage) => {
@@ -291,10 +293,12 @@ function AdminDashboard() {
 
   useEffect(() => {
     if (!schedule) return;
-    setForm((prev) => ({
-      ...prev,
-      week: schedule.hasStarted ? Math.max(1, schedule.scheduledWeek) : 1,
-    }));
+    setForm((prev) => {
+      if (weekAutoSetRef.current) return prev;
+      const nextWeek = schedule.hasStarted ? Math.max(1, schedule.scheduledWeek) : 1;
+      weekAutoSetRef.current = true;
+      return { ...prev, week: nextWeek };
+    });
   }, [schedule]);
 
   useEffect(() => {
@@ -312,6 +316,9 @@ function AdminDashboard() {
       windowEndTime: `${pad2(schedule.windowEndHour ?? 23)}:${pad2(
         schedule.windowEndMinute ?? 59
       )}`,
+      windowEndDayOffset: Number.isFinite(Number(schedule.windowEndDayOffset))
+        ? Number(schedule.windowEndDayOffset)
+        : prev.windowEndDayOffset,
     }));
   }, [schedule, showScheduleEditor]);
 
@@ -331,6 +338,7 @@ function AdminDashboard() {
 
     try {
       setLoading(true);
+      const submittedWeek = form.week;
       const res = await fetch(`${API_BASE}/api/questions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -344,7 +352,7 @@ function AdminDashboard() {
         options: ["", "", "", ""],
         correctAnswer: 0,
         explanation: "",
-        week: 1,
+        week: submittedWeek,
       });
 
       loadAdminData();
@@ -426,6 +434,20 @@ function AdminDashboard() {
     schedule?.testDayOfWeek
   );
   const lastCompletedWeek = Math.max(1, Number(schedule?.scheduledWeek || 1) - 1);
+  const scheduleStartDayLabel = schedule?.testDayLabel || "Saturday";
+  const scheduleEndDayLabel = schedule?.windowEndDayLabel || scheduleStartDayLabel;
+  const nextTestWindowLabel =
+    scheduleStartDayLabel === scheduleEndDayLabel
+      ? `${schedule?.windowStartTime || "7:00 AM"} to ${schedule?.windowEndTime || "11:59 PM"}`
+      : `${scheduleStartDayLabel} ${schedule?.windowStartTime || "7:00 AM"} to ${scheduleEndDayLabel} ${schedule?.windowEndTime || "11:59 PM"}`;
+  const showPrepRecommendation =
+    dashboardHealth.weakestWeek && Number(dashboardHealth.weakestWeek.averageScore) < 50;
+  const formStartDayLabel =
+    DAY_OPTIONS.find((item) => item.value === Number(scheduleForm.testDayOfWeek))?.label ||
+    "Saturday";
+  const formEndDayLabel =
+    DAY_OPTIONS.find((item) => item.value === (Number(scheduleForm.testDayOfWeek) + 1) % 7)
+      ?.label || "Sunday";
 
   const formatRelativeTime = (value) => {
     const deltaMs = Date.now() - new Date(value).getTime();
@@ -682,6 +704,7 @@ function AdminDashboard() {
           windowStartMinute: startMinute,
           windowEndHour: endHour,
           windowEndMinute: endMinute,
+          windowEndDayOffset: Number(scheduleForm.windowEndDayOffset || 0),
         }),
       });
 
@@ -769,39 +792,115 @@ function AdminDashboard() {
             </div>
           </div>
 
-          <div className="admin-animate mt-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-4 text-sm text-slate-700">
-            <p className="font-semibold text-slate-900">{"\u26A0\uFE0F"} Requires Attention</p>
-            <div className="mt-2 space-y-1">
-              <p>{"\u2022"} {dashboardHealth.inactiveStudents} students missed Week {lastCompletedWeek}.</p>
-              <p>
-                {"\u2022"}{" "}
-                {dashboardHealth.weakestWeek
-                  ? `Week ${dashboardHealth.weakestWeek.week} performance: ${dashboardHealth.weakestWeek.averageScore}% avg`
-                  : "Not enough performance data yet"}.
-              </p>
-              <p>
-                {"\u2022"} Next test: Week {nextTestWeek} {"\u2022"} {nextTestDate},{" "}
-                {schedule?.windowStartTime || "7:00 AM"}
-              </p>
-            </div>
-            <div className="mt-3 flex flex-wrap gap-2">
-              <button
-                type="button"
-                onClick={handleSendReminder}
-                className="rounded-md bg-black px-3 py-2 text-xs font-semibold text-yellow-300"
-              >
-                Send Reminder
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowScheduleEditor((prev) => !prev)}
-                className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
-              >
-                Adjust Schedule
-              </button>
+          <div className="admin-animate mt-4 rounded-2xl border border-amber-200 bg-gradient-to-br from-amber-50 via-yellow-50 to-white p-5 shadow-sm">
+            <div className="flex flex-col gap-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-amber-700">
+                    Attention Panel
+                  </p>
+                  <h3 className="mt-1 text-lg font-semibold text-slate-900">
+                    Admin attention summary
+                  </h3>
+                  <p className="mt-1 text-sm text-slate-600">
+                    Participation, performance, and next test timing in one place.
+                  </p>
+                </div>
+                <span className="rounded-full border border-amber-200 bg-white px-3 py-1 text-xs font-semibold text-amber-700">
+                  Live
+                </span>
+              </div>
+
+              <div className="grid gap-3 lg:grid-cols-3">
+                <div className="rounded-xl border border-red-100 bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-red-500" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-red-700">
+                        Participation Alert
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        {dashboardHealth.inactiveStudents} students missed Week {lastCompletedWeek}
+                      </p>
+                      <p className="mt-1 text-sm text-slate-600">
+                        Encourage them to attempt the next test to maintain consistency.
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-sky-100 bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-sky-500" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-sky-700">
+                        Performance Insight
+                      </p>
+                      {dashboardHealth.weakestWeek ? (
+                        <>
+                          <p className="mt-2 text-sm font-semibold text-slate-700">
+                            Week {dashboardHealth.weakestWeek.week} average score
+                          </p>
+                          <p className="mt-1 text-2xl font-semibold text-slate-900">
+                            {dashboardHealth.weakestWeek.averageScore}%
+                          </p>
+                          <p className="mt-1 text-sm text-slate-600">
+                            Students may need additional preparation resources.
+                          </p>
+                        </>
+                      ) : (
+                        <p className="mt-2 text-sm text-slate-600">
+                          Not enough performance data yet.
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="rounded-xl border border-emerald-100 bg-white p-4">
+                  <div className="flex items-start gap-3">
+                    <span className="mt-1 h-2.5 w-2.5 rounded-full bg-emerald-500" />
+                    <div>
+                      <p className="text-xs font-semibold uppercase tracking-wide text-emerald-700">
+                        Upcoming Test
+                      </p>
+                      <p className="mt-2 text-base font-semibold text-slate-900">
+                        Week {nextTestWeek} Test
+                      </p>
+                      <p className="mt-1 text-sm text-slate-700">{nextTestDate}</p>
+                      <p className="mt-1 text-sm font-semibold text-slate-900">
+                        {nextTestWindowLabel}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {showPrepRecommendation && (
+                <div className="rounded-xl border border-amber-200 bg-amber-100/70 px-4 py-3 text-sm text-amber-900">
+                  Recommendation: Encourage students to review Prep Hub resources before Week {nextTestWeek}.
+                </div>
+              )}
+
+              <div className="flex flex-wrap gap-3">
+                <button
+                  type="button"
+                  onClick={handleSendReminder}
+                  className="rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white hover:bg-blue-700"
+                >
+                  Send Reminder
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setShowScheduleEditor((prev) => !prev)}
+                  className="rounded-lg border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 hover:bg-slate-50"
+                >
+                  Adjust Schedule
+                </button>
+              </div>
             </div>
             {reminderMessage && (
-              <p className="mt-2 text-xs text-slate-700">{reminderMessage}</p>
+              <p className="mt-3 text-xs font-medium text-slate-700">{reminderMessage}</p>
             )}
 
             {showScheduleEditor && (
@@ -816,7 +915,7 @@ function AdminDashboard() {
                   Set weekly test day and test window. Changes apply immediately.
                 </p>
 
-                <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-4">
+                <div className="mt-3 grid gap-3 md:grid-cols-2 lg:grid-cols-5">
                   <div>
                     <label className="block text-xs font-semibold text-slate-700">
                       Week 1 Date
@@ -892,12 +991,34 @@ function AdminDashboard() {
                       required
                     />
                   </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700">
+                      Window End Day
+                    </label>
+                    <select
+                      value={scheduleForm.windowEndDayOffset}
+                      onChange={(e) =>
+                        setScheduleForm((prev) => ({
+                          ...prev,
+                          windowEndDayOffset: Number(e.target.value),
+                        }))
+                      }
+                      className="mt-1 w-full rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800"
+                    >
+                      <option value={0}>Same day ({formStartDayLabel})</option>
+                      <option value={1}>Next day ({formEndDayLabel})</option>
+                    </select>
+                  </div>
                 </div>
 
                 <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-xs text-slate-600">
-                    Current window: {schedule?.testDayLabel || "Saturday"},{" "}
+                    Current window: {scheduleStartDayLabel},{" "}
                     {schedule?.windowStartTime || "7:00 AM"} {"\u2022"}{" "}
+                    {scheduleEndDayLabel !== scheduleStartDayLabel
+                      ? `${scheduleEndDayLabel}, `
+                      : ""}
                     {schedule?.windowEndTime || "11:59 PM"}.
                   </p>
                   <button
@@ -1146,9 +1267,12 @@ function AdminDashboard() {
                   min={1}
                   value={form.week}
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      week: Number(e.target.value),
+                    setForm((prev) => {
+                      weekAutoSetRef.current = true;
+                      return {
+                        ...prev,
+                        week: Number(e.target.value),
+                      };
                     })
                   }
                   className="mt-2 w-full rounded-md border border-slate-300 bg-white px-4 py-3 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
@@ -1240,80 +1364,88 @@ function AdminDashboard() {
             </form>
 
             {showOldQuestions && (
-              <div className="mt-8 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                  <h3 className="text-base font-semibold text-slate-900">
-                    Question Bank
-                  </h3>
-                  <div className="flex items-center gap-3">
-                    <p className="text-xs text-slate-600">
-                      {filteredQuestions.length} question{filteredQuestions.length === 1 ? "" : "s"}
-                      {questionWeekFilter ? ` - Week ${questionWeekFilter}` : ""}
-                    </p>
-                    <button
-                      type="button"
-                      onClick={closeQuestionBank}
-                      className="w-full sm:w-auto rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Back to Add Question
-                    </button>
+              <div className="mt-8 overflow-hidden rounded-xl border border-slate-200 bg-slate-50">
+                <div className="max-h-[75vh] overflow-y-auto overscroll-contain scroll-smooth">
+                  <div className="sticky top-0 z-20 border-b border-slate-200 bg-slate-50/95 px-4 pb-3 pt-4 shadow-sm backdrop-blur">
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div>
+                        <h3 className="text-base font-semibold text-slate-900">
+                          Question Bank
+                        </h3>
+                        <p className="mt-1 text-xs text-slate-500">
+                          Manage and review questions with clean preview cards.
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3">
+                        <p className="text-xs text-slate-600">
+                          {filteredQuestions.length} question{filteredQuestions.length === 1 ? "" : "s"}
+                          {questionWeekFilter ? ` - Week ${questionWeekFilter}` : ""}
+                        </p>
+                        <button
+                          type="button"
+                          onClick={closeQuestionBank}
+                          className="w-full sm:w-auto rounded-md border border-slate-300 bg-white px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Back to Add Question
+                        </button>
+                      </div>
+                    </div>
+
+                    <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <input
+                          type="number"
+                          min={1}
+                          value={questionWeekFilter}
+                          onChange={(e) => setQuestionWeekFilter(e.target.value)}
+                          placeholder="All Weeks"
+                          className="w-full sm:w-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
+                        />
+                        <input
+                          type="text"
+                          value={questionSearch}
+                          onChange={(e) => setQuestionSearch(e.target.value)}
+                          placeholder="Search question text"
+                          className="w-full sm:w-56 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => loadOldQuestions(questionWeekFilter)}
+                          className="rounded-md bg-yellow-400 px-3 py-2 text-xs font-semibold text-black"
+                        >
+                          Apply
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleResetQuestionFilters}
+                          className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                        >
+                          Reset
+                        </button>
+                      </div>
+                    </div>
                   </div>
-                </div>
 
-                <div className="mt-3 flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <input
-                      type="number"
-                      min={1}
-                      value={questionWeekFilter}
-                      onChange={(e) => setQuestionWeekFilter(e.target.value)}
-                      placeholder="All Weeks"
-                      className="w-32 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
-                    />
-                    <input
-                      type="text"
-                      value={questionSearch}
-                      onChange={(e) => setQuestionSearch(e.target.value)}
-                      placeholder="Search question text"
-                      className="w-56 rounded-md border border-slate-300 bg-white px-3 py-2 text-sm text-slate-800 focus:border-yellow-400 focus:outline-none"
-                    />
-                    <button
-                      type="button"
-                      onClick={() => loadOldQuestions(questionWeekFilter)}
-                      className="rounded-md bg-yellow-400 px-3 py-2 text-xs font-semibold text-black"
-                    >
-                      Apply
-                    </button>
-                    <button
-                      type="button"
-                      onClick={handleResetQuestionFilters}
-                      className="rounded-md border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                    >
-                      Reset
-                    </button>
-                  </div>
-                </div>
+                  <div className="space-y-4 px-4 py-4">
+                    {questionsError && (
+                      <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                        {questionsError}
+                      </div>
+                    )}
+                    {questionsLoading && (
+                      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                        Loading questions...
+                      </div>
+                    )}
+                    {!questionsLoading && filteredQuestions.length === 0 && (
+                      <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
+                        No questions found.
+                      </div>
+                    )}
 
-                <div className="mt-4 space-y-4">
-                  {questionsError && (
-                    <div className="rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-                      {questionsError}
-                    </div>
-                  )}
-                  {questionsLoading && (
-                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                      Loading questions...
-                    </div>
-                  )}
-                  {!questionsLoading && filteredQuestions.length === 0 && (
-                    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-500">
-                      No questions found.
-                    </div>
-                  )}
-
-                  {!questionsLoading &&
-                    questionGroups.map((group) => (
-                      <div key={`week-group-${group.week}`} className="rounded-xl border border-slate-200 bg-white p-4">
+                    {!questionsLoading &&
+                      questionGroups.map((group) => (
+                        <div key={`week-group-${group.week}`} className="rounded-xl border border-slate-200 bg-white p-4">
                         <p className="text-sm font-semibold text-slate-900">
                           Week {group.week} {"\u2022"}{" "}
                           {formatWeekDate(
@@ -1404,8 +1536,9 @@ function AdminDashboard() {
                             );
                           })}
                         </div>
-                      </div>
-                    ))}
+                        </div>
+                      ))}
+                  </div>
                 </div>
 
                 {editingQuestionId && (

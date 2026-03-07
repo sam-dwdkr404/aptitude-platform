@@ -42,6 +42,12 @@ const scheduleConfigSchema = new mongoose.Schema(
       max: 59,
       required: true,
     },
+    windowEndDayOffset: {
+      type: Number,
+      min: 0,
+      max: 6,
+      default: 0,
+    },
   },
   { timestamps: true }
 );
