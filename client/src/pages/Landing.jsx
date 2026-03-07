@@ -328,32 +328,32 @@ function Landing() {
                   </div>
 
                   {topPerformer ? (
-                    <div className="mt-5 grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-                      <div className="rounded-2xl border border-white/10 bg-white/5 p-5">
-                        <p className="text-2xl font-semibold text-white">
+                    <div className="mt-5 space-y-3">
+                      <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                        <p className="text-xl font-semibold text-white sm:text-2xl">
                           {topPerformer.studentName || "Unknown"}
                         </p>
                         <p className="mt-1 text-sm text-white/70">
                           Week {topPerformer.week} leader
                         </p>
                       </div>
-                      <div className="grid gap-3 sm:grid-cols-3">
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                      <div className="grid grid-cols-3 gap-2 sm:gap-3">
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
                           <p className="text-xs uppercase tracking-wide text-white/50">Score</p>
-                          <p className="mt-2 text-xl font-semibold text-yellow-300">
+                          <p className="mt-2 text-lg font-semibold text-yellow-300 sm:text-xl">
                             {topPerformer.score}
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                          <p className="text-xs uppercase tracking-wide text-white/50">Date</p>
-                          <p className="mt-2 text-sm font-semibold text-white">
-                            {formatCompactDate(topPerformer.createdAt)}
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                          <p className="text-xs uppercase tracking-wide text-white/50">Rank</p>
+                          <p className="mt-2 text-lg font-semibold text-yellow-300 sm:text-xl">
+                            #{topPerformer.rank || 1}
                           </p>
                         </div>
-                        <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
-                          <p className="text-xs uppercase tracking-wide text-white/50">Rank</p>
-                          <p className="mt-2 text-xl font-semibold text-white">
-                            #{topPerformer.rank || 1}
+                        <div className="rounded-xl border border-white/10 bg-white/5 p-3 text-center">
+                          <p className="text-xs uppercase tracking-wide text-white/50">Date</p>
+                          <p className="mt-2 text-xs font-medium text-white sm:text-sm">
+                            {formatCompactDate(topPerformer.createdAt)}
                           </p>
                         </div>
                       </div>
@@ -419,4 +419,3 @@ function Landing() {
 }
 
 export default Landing;
-
