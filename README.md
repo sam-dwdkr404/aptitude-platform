@@ -157,7 +157,7 @@ Clone the repository
 
 ```
 
-git clone [https://github.com/your-username/aptitude-platform.git](https://github.com/your-username/aptitude-platform.git)
+git clone (https://github.com/your-username/aptitude-platform.git)
 
 ```
 
@@ -189,7 +189,7 @@ Frontend `.env`
 
 ```
 
-VITE_API_BASE=[http://localhost:5000](http://localhost:5000)
+VITE_API_BASE=(http://localhost:5000)
 
 ```
 
