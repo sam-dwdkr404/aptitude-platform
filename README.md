@@ -207,25 +207,33 @@ PORT=5000
 
 ## Screenshots
 
-Add screenshots of:
-
 - Landing page:
+
+  
   <img width="765" height="882" alt="image" src="https://github.com/user-attachments/assets/cd52dcd7-3f5c-40de-8943-3de4047f513b" />
   <img width="789" height="683" alt="image" src="https://github.com/user-attachments/assets/2ae4abd5-2bcd-4180-ba2b-76ed53fd6cc3" />
 
 - Admin interface:
-  <img width="857" height="925" alt="image" src="https://github.com/user-attachments/assets/0eeb6fd1-0daf-4f62-99cc-e6c443c0145d" />
-  <img width="757" height="936" alt="image" src="https://github.com/user-attachments/assets/cc40595e-040f-4207-93db-6f5a7b323307" />
+
+  
+        <img width="857" height="925" alt="image" src="https://github.com/user-attachments/assets/0eeb6fd1-0daf-4f62-99cc-e6c443c0145d" />
+        <img width="757" height="936" alt="image" src="https://github.com/user-attachments/assets/cc40595e-040f-4207-93db-6f5a7b323307" />
   
 - Leaderboard :
-  <img width="672" height="300" alt="image" src="https://github.com/user-attachments/assets/21d84248-be2e-46d0-8f09-76aa525f46d1" />
+
+  
+        <img width="672" height="300" alt="image" src="https://github.com/user-attachments/assets/21d84248-be2e-46d0-8f09-76aa525f46d1" />
   
 - Notifying Students :
-  <img width="685" height="167" alt="image" src="https://github.com/user-attachments/assets/03512456-0759-45c2-ac11-37368ff5e254" />
+
+  
+        <img width="685" height="167" alt="image" src="https://github.com/user-attachments/assets/03512456-0759-45c2-ac11-37368ff5e254" />
 
 
 - Student Interfce :
-  <img width="508" height="820" alt="image" src="https://github.com/user-attachments/assets/cbc77c24-a3c9-436b-b317-afc985652105" />
+
+  
+        <img width="508" height="820" alt="image" src="https://github.com/user-attachments/assets/cbc77c24-a3c9-436b-b317-afc985652105" />
   
 
 ## Future Improvements
